@@ -373,23 +373,18 @@ function App() {
                     <stop offset="0%" stopColor="#163a63" />
                     <stop offset="100%" stopColor="#0b1d33" />
                   </linearGradient>
-                  <radialGradient id="mapGlow" cx="50%" cy="34%" r="72%">
-                    <stop offset="0%" stopColor="rgba(255,255,255,0.16)" />
-                    <stop offset="60%" stopColor="rgba(255,255,255,0.03)" />
-                    <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-                  </radialGradient>
                 </defs>
                 <rect width="1000" height="500" rx="24" fill="url(#mapOcean)" />
-                <ellipse cx="500" cy="250" rx="438" ry="196" fill="url(#mapGlow)" />
-                <circle cx="500" cy="250" r="208" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="3" />
-                <circle cx="500" cy="250" r="214" fill="none" stroke="rgba(255,255,255,0.08)" strokeDasharray="10 14" />
+                <rect x="18" y="18" width="964" height="464" rx="20" fill="none" stroke="rgba(255,255,255,0.16)" />
+                <path d="M 500 18 L 500 482" stroke="rgba(255,255,255,0.08)" />
+                <path d="M 18 250 L 982 250" stroke="rgba(255,255,255,0.08)" />
                 {[0, 30, 60, -30, -60].map((lat) => {
                   const y = 250 - (lat / 180) * 360
                   return (
                     <line
                       key={lat}
-                      x1="292"
-                      x2="708"
+                      x1="18"
+                      x2="982"
                       y1={y}
                       y2={y}
                       stroke="rgba(255,255,255,0.13)"
@@ -398,23 +393,31 @@ function App() {
                   )
                 })}
                 {[-120, -60, 0, 60, 120].map((lon) => {
-                  const x = 500 + (lon / 180) * 208
+                  const x = ((lon + 180) / 360) * 1000
                   return (
                     <path
                       key={lon}
-                      d={`M ${x} 42 C ${x - 22} 106, ${x - 22} 394, ${x} 458`}
+                      d={`M ${x} 18 C ${x - 18} 122, ${x - 18} 378, ${x} 482`}
                       stroke="rgba(255,255,255,0.13)"
                       strokeDasharray="8 10"
                       fill="none"
                     />
                   )
                 })}
-                <g opacity="0.88">
+                <g opacity="0.9">
                   {MAP_LANDMASS.map((d, index) => (
                     <path
                       key={d}
                       d={d}
-                      transform={index % 2 === 0 ? 'translate(0 4)' : 'translate(8 -2)'}
+                      transform={
+                        index % 4 === 0
+                          ? 'translate(-64 8) scale(0.96)'
+                          : index % 4 === 1
+                            ? 'translate(18 -4) scale(1.02)'
+                            : index % 4 === 2
+                              ? 'translate(-6 20) scale(0.98)'
+                              : 'translate(26 10) scale(1)'
+                      }
                       fill={index % 3 === 0 ? '#4bb26f' : '#3f9d63'}
                       stroke="rgba(17, 45, 31, 0.72)"
                       strokeWidth="4"
@@ -422,8 +425,12 @@ function App() {
                     />
                   ))}
                 </g>
-                <ellipse cx="430" cy="155" rx="160" ry="48" fill="rgba(255,255,255,0.08)" transform="rotate(-18 430 155)" />
-                <ellipse cx="640" cy="320" rx="190" ry="54" fill="rgba(255,255,255,0.06)" transform="rotate(16 640 320)" />
+                <text x="36" y="46" fill="rgba(255,255,255,0.82)" fontSize="18">
+                  World map
+                </text>
+                <text x="36" y="66" fill="rgba(255,255,255,0.62)" fontSize="14">
+                  Click anywhere to place the viewing location
+                </text>
                 <circle
                   cx={pinnedPoint.x}
                   cy={pinnedPoint.y}
@@ -444,9 +451,6 @@ function App() {
                   strokeWidth="3"
                 />
                 <circle cx={pinnedPoint.x} cy={pinnedPoint.y} r="5" fill="#ffffff" />
-                <text x="24" y="34" fill="rgba(255,255,255,0.82)" fontSize="20">
-                  Click the globe to drop a pin
-                </text>
               </svg>
             </div>
           </div>
