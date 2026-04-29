@@ -21,6 +21,7 @@ const DEFAULT_STATE = {
   date: '2026-04-28',
   time: '22:00',
   showLabels: true,
+  showMapLabels: false,
   showConstellations: true,
   showGrid: true,
   showNorth: true,
@@ -85,6 +86,7 @@ function parseQuery() {
     date: params.get('date') || DEFAULT_STATE.date,
     time: params.get('time') || DEFAULT_STATE.time,
     showLabels: params.get('showLabels') !== 'false',
+    showMapLabels: params.get('showMapLabels') === 'true',
     showConstellations: params.get('showConstellations') !== 'false',
     showGrid: params.get('showGrid') !== 'false',
     showNorth: params.get('showNorth') !== 'false',
@@ -359,23 +361,27 @@ function App() {
             </label>
 
             <div className="pin-map-card">
-              <div className="map-heading">
-                <div>
-                  <strong>Drop a pin</strong>
-                  <p>Click anywhere on the world map to set latitude and longitude.</p>
-                </div>
-                <span>{latitude.toFixed(2)}°, {longitude.toFixed(2)}°</span>
-              </div>
-
               <div
                 className="pin-map"
                 role="img"
                 aria-label="World map pin selector"
                 onClick={handleDropPin}
               >
+                <button
+                  type="button"
+                  className={`map-chip ${state.showMapLabels ? 'active' : ''}`}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    setField('showMapLabels', !state.showMapLabels)
+                  }}
+                  aria-pressed={state.showMapLabels}
+                >
+                  Labels {state.showMapLabels ? 'on' : 'off'}
+                </button>
+
                 <img className="pin-map-image" src={worldMapUrl} alt="" aria-hidden="true" />
                 <div className="pin-map-overlay">
-                  {WORLD_LABELS.map((label) => {
+                  {state.showMapLabels && WORLD_LABELS.map((label) => {
                     const point = mapLatLonToPoint(label.latitude, label.longitude)
                     return (
                       <div
@@ -400,7 +406,7 @@ function App() {
 
                 <div className="pin-map-caption">
                   <strong>World map</strong>
-                  <span>Click anywhere to place the viewing location</span>
+                  <span>{latitude.toFixed(2)}°, {longitude.toFixed(2)}°</span>
                 </div>
               </div>
             </div>

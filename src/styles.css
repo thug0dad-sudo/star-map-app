@@ -216,6 +216,26 @@ input[type='range'] {
   background: #0b1d33;
 }
 
+.map-chip {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 3;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(7, 12, 23, 0.62);
+  backdrop-filter: blur(10px);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.map-chip.active {
+  background: rgba(148, 196, 255, 0.18);
+  border-color: rgba(166, 211, 255, 0.4);
+}
+
 .pin-map-image,
 .pin-map-overlay {
   position: absolute;
@@ -238,13 +258,13 @@ input[type='range'] {
 .world-label {
   position: absolute;
   transform: translate(-50%, -50%);
-  padding: 3px 7px;
+  padding: 2px 6px;
   border-radius: 999px;
-  background: rgba(11, 20, 31, 0.48);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(11, 20, 31, 0.36);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   color: rgba(255, 255, 255, 0.9);
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-size: 0.6rem;
+  font-weight: 600;
   letter-spacing: 0.02em;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(6px);
@@ -277,24 +297,24 @@ input[type='range'] {
 
 .pin-map-caption {
   position: absolute;
-  left: 14px;
-  top: 14px;
+  left: 12px;
+  bottom: 12px;
   display: grid;
   gap: 2px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(7, 12, 23, 0.62);
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(7, 12, 23, 0.58);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(10px);
 }
 
 .pin-map-caption strong {
-  font-size: 0.92rem;
+  font-size: 0.8rem;
 }
 
 .pin-map-caption span {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   color: rgba(255, 255, 255, 0.68);
 }
 
