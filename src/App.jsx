@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { brightStars, cityPresets, constellations } from './catalog'
+import worldMapUrl from './assets/world-map.svg?url'
 import {
   clamp,
   degToRad,
@@ -55,16 +56,21 @@ const THEMES = {
   },
 }
 
-const MAP_LANDMASS = [
-  'M120 126 C150 90, 214 86, 252 124 C272 145, 275 176, 248 190 C227 202, 205 194, 189 186 C169 176, 150 170, 136 168 C116 164, 102 143, 120 126 Z',
-  'M208 190 C238 178, 270 192, 286 218 C300 241, 292 272, 270 286 C246 301, 220 288, 208 270 C196 252, 191 216, 208 190 Z',
-  'M286 156 C322 138, 356 145, 371 170 C380 185, 375 205, 354 210 C334 215, 321 225, 314 243 C306 263, 282 270, 268 256 C252 241, 253 212, 262 192 C270 175, 272 164, 286 156 Z',
-  'M402 124 C435 96, 476 95, 506 116 C532 134, 535 164, 512 179 C493 192, 471 190, 455 182 C441 175, 427 177, 418 190 C407 207, 384 203, 376 187 C366 170, 377 139, 402 124 Z',
-  'M448 206 C486 187, 534 196, 552 226 C565 248, 554 274, 525 283 C497 292, 478 284, 461 271 C442 257, 424 238, 448 206 Z',
-  'M620 118 C656 96, 700 101, 718 127 C731 145, 724 166, 706 177 C688 188, 670 188, 653 182 C641 178, 627 180, 616 189 C603 199, 585 197, 579 183 C572 166, 591 133, 620 118 Z',
-  'M681 184 C720 176, 755 194, 765 223 C772 243, 760 260, 737 265 C721 268, 707 263, 695 256 C681 248, 664 243, 651 245 C636 247, 624 237, 626 223 C629 203, 651 188, 681 184 Z',
-  'M752 130 C774 119, 803 122, 812 140 C819 153, 813 167, 796 171 C778 175, 766 185, 760 198 C754 212, 738 216, 730 205 C720 191, 724 151, 752 130 Z',
-  'M792 306 C815 292, 846 296, 859 314 C867 326, 863 340, 848 345 C832 350, 821 360, 818 374 C814 389, 796 395, 786 383 C775 370, 774 318, 792 306 Z',
+const WORLD_LABELS = [
+  { name: 'Canada', latitude: 58, longitude: -101 },
+  { name: 'United States', latitude: 39, longitude: -98 },
+  { name: 'Mexico', latitude: 23, longitude: -102 },
+  { name: 'Brazil', latitude: -10, longitude: -53 },
+  { name: 'Argentina', latitude: -34, longitude: -64 },
+  { name: 'United Kingdom', latitude: 54, longitude: -2 },
+  { name: 'France', latitude: 46.5, longitude: 2 },
+  { name: 'Russia', latitude: 61, longitude: 100 },
+  { name: 'China', latitude: 35, longitude: 103 },
+  { name: 'India', latitude: 22, longitude: 79 },
+  { name: 'Australia', latitude: -25, longitude: 134 },
+  { name: 'South Africa', latitude: -29, longitude: 24 },
+  { name: 'Greenland', latitude: 72, longitude: -42 },
+  { name: 'Japan', latitude: 37, longitude: 138 },
 ]
 
 function parseQuery() {
@@ -361,97 +367,42 @@ function App() {
                 <span>{latitude.toFixed(2)}°, {longitude.toFixed(2)}°</span>
               </div>
 
-              <svg
+              <div
                 className="pin-map"
-                viewBox="0 0 1000 500"
                 role="img"
                 aria-label="World map pin selector"
                 onClick={handleDropPin}
               >
-                <defs>
-                  <linearGradient id="mapOcean" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#163a63" />
-                    <stop offset="100%" stopColor="#0b1d33" />
-                  </linearGradient>
-                </defs>
-                <rect width="1000" height="500" rx="24" fill="url(#mapOcean)" />
-                <rect x="18" y="18" width="964" height="464" rx="20" fill="none" stroke="rgba(255,255,255,0.16)" />
-                <path d="M 500 18 L 500 482" stroke="rgba(255,255,255,0.08)" />
-                <path d="M 18 250 L 982 250" stroke="rgba(255,255,255,0.08)" />
-                {[0, 30, 60, -30, -60].map((lat) => {
-                  const y = 250 - (lat / 180) * 360
-                  return (
-                    <line
-                      key={lat}
-                      x1="18"
-                      x2="982"
-                      y1={y}
-                      y2={y}
-                      stroke="rgba(255,255,255,0.13)"
-                      strokeDasharray="8 10"
-                    />
-                  )
-                })}
-                {[-120, -60, 0, 60, 120].map((lon) => {
-                  const x = ((lon + 180) / 360) * 1000
-                  return (
-                    <path
-                      key={lon}
-                      d={`M ${x} 18 C ${x - 18} 122, ${x - 18} 378, ${x} 482`}
-                      stroke="rgba(255,255,255,0.13)"
-                      strokeDasharray="8 10"
-                      fill="none"
-                    />
-                  )
-                })}
-                <g opacity="0.9">
-                  {MAP_LANDMASS.map((d, index) => (
-                    <path
-                      key={d}
-                      d={d}
-                      transform={
-                        index % 4 === 0
-                          ? 'translate(-64 8) scale(0.96)'
-                          : index % 4 === 1
-                            ? 'translate(18 -4) scale(1.02)'
-                            : index % 4 === 2
-                              ? 'translate(-6 20) scale(0.98)'
-                              : 'translate(26 10) scale(1)'
-                      }
-                      fill={index % 3 === 0 ? '#4bb26f' : '#3f9d63'}
-                      stroke="rgba(17, 45, 31, 0.72)"
-                      strokeWidth="4"
-                      opacity="0.9"
-                    />
-                  ))}
-                </g>
-                <text x="36" y="46" fill="rgba(255,255,255,0.82)" fontSize="18">
-                  World map
-                </text>
-                <text x="36" y="66" fill="rgba(255,255,255,0.62)" fontSize="14">
-                  Click anywhere to place the viewing location
-                </text>
-                <circle
-                  cx={pinnedPoint.x}
-                  cy={pinnedPoint.y}
-                  r="11"
-                  fill="#fefefe"
-                  opacity="0.95"
-                />
-                <circle
-                  cx={pinnedPoint.x}
-                  cy={pinnedPoint.y}
-                  r="24"
-                  fill="rgba(255,255,255,0.18)"
-                />
-                <path
-                  d={`M ${pinnedPoint.x} ${pinnedPoint.y + 10} C ${pinnedPoint.x - 8} ${pinnedPoint.y + 32}, ${pinnedPoint.x + 8} ${pinnedPoint.y + 32}, ${pinnedPoint.x} ${pinnedPoint.y + 54} C ${pinnedPoint.x - 8} ${pinnedPoint.y + 32}, ${pinnedPoint.x + 8} ${pinnedPoint.y + 32}, ${pinnedPoint.x} ${pinnedPoint.y + 10} Z`}
-                  fill="#ff6b6b"
-                  stroke="rgba(255,255,255,0.86)"
-                  strokeWidth="3"
-                />
-                <circle cx={pinnedPoint.x} cy={pinnedPoint.y} r="5" fill="#ffffff" />
-              </svg>
+                <img className="pin-map-image" src={worldMapUrl} alt="" aria-hidden="true" />
+                <div className="pin-map-overlay">
+                  {WORLD_LABELS.map((label) => {
+                    const point = mapLatLonToPoint(label.latitude, label.longitude)
+                    return (
+                      <div
+                        key={label.name}
+                        className="world-label"
+                        style={{ left: `${(point.x / 1000) * 100}%`, top: `${(point.y / 500) * 100}%` }}
+                      >
+                        {label.name}
+                      </div>
+                    )
+                  })}
+
+                  <div
+                    className="map-pin-shadow"
+                    style={{ left: `${(pinnedPoint.x / 1000) * 100}%`, top: `${(pinnedPoint.y / 500) * 100}%` }}
+                  />
+                  <div
+                    className="map-pin"
+                    style={{ left: `${(pinnedPoint.x / 1000) * 100}%`, top: `${(pinnedPoint.y / 500) * 100}%` }}
+                  />
+                </div>
+
+                <div className="pin-map-caption">
+                  <strong>World map</strong>
+                  <span>Click anywhere to place the viewing location</span>
+                </div>
+              </div>
             </div>
           </div>
 
