@@ -1,19 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  brightStars,
-  cityPresets,
-  constellations,
-} from './catalog'
+import { brightStars, cityPresets, constellations } from './catalog'
 import {
   clamp,
   degToRad,
   equatorialToHorizontal,
   formatOffset,
+  localSiderealTime,
   makeSeed,
   normalizeAngle,
   projectToSky,
   seededRandom,
-  localSiderealTime,
 } from './astronomy'
 
 const DEFAULT_STATE = {
@@ -35,21 +31,24 @@ const DEFAULT_STATE = {
 const THEMES = {
   midnight: {
     name: 'Midnight',
-    background: 'radial-gradient(circle at top, #10264b 0%, #07111f 52%, #03060d 100%)',
+    background:
+      'radial-gradient(circle at top, #10264b 0%, #07111f 52%, #03060d 100%)',
     line: 'rgba(180, 210, 255, 0.4)',
     starGlow: '#dff2ff',
     card: 'rgba(7, 12, 23, 0.78)',
   },
   dusk: {
     name: 'Dusk',
-    background: 'radial-gradient(circle at top, #3f3a76 0%, #1c183b 45%, #09080f 100%)',
+    background:
+      'radial-gradient(circle at top, #3f3a76 0%, #1c183b 45%, #09080f 100%)',
     line: 'rgba(255, 214, 170, 0.35)',
     starGlow: '#fff0d9',
     card: 'rgba(17, 13, 33, 0.78)',
   },
   desert: {
     name: 'Desert',
-    background: 'radial-gradient(circle at top, #20344c 0%, #121f2c 50%, #05070a 100%)',
+    background:
+      'radial-gradient(circle at top, #20344c 0%, #121f2c 50%, #05070a 100%)',
     line: 'rgba(255, 225, 185, 0.28)',
     starGlow: '#fff3df',
     card: 'rgba(12, 17, 22, 0.76)',
@@ -99,6 +98,38 @@ function seededBackgroundStars(seed, count = 260) {
   })
 }
 
+function timeToMinutes(time) {
+  const [hours, minutes] = time.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+function minutesToTime(totalMinutes) {
+  const minutesInDay = 24 * 60
+  const normalized = ((Math.round(totalMinutes) % minutesInDay) + minutesInDay) % minutesInDay
+  const hours = Math.floor(normalized / 60)
+  const minutes = normalized % 60
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+}
+
+function estimatedTimezoneFromLongitude(longitude) {
+  return Math.round((longitude / 15) * 2) / 2
+}
+
+function mapLatLonToPoint(latitude, longitude, width = 1000, height = 500) {
+  const x = ((longitude + 180) / 360) * width
+  const y = ((90 - latitude) / 180) * height
+  return { x, y }
+}
+
+function mapPointToLatLon(x, y, width = 1000, height = 500) {
+  const longitude = (x / width) * 360 - 180
+  const latitude = 90 - (y / height) * 180
+  return {
+    latitude: clamp(latitude, -90, 90),
+    longitude: clamp(longitude, -180, 180),
+  }
+}
+
 function App() {
   const [state, setState] = useState(parseQuery)
   const svgRef = useRef(null)
@@ -120,6 +151,7 @@ function App() {
     () => buildDateTime(state.date, state.time, timezoneHours),
     [state.date, state.time, timezoneHours],
   )
+  const timeMinutes = useMemo(() => timeToMinutes(state.time), [state.time])
 
   const allStars = useMemo(() => {
     const seed = makeSeed(`${state.locationName}-${state.date}-${state.time}`)
@@ -167,26 +199,20 @@ function App() {
         .filter(([from, to]) => from && to),
     )
 
-    const brightest = visibleStars
-      .slice()
-      .sort((a, b) => a.magnitude - b.magnitude)
-      .slice(0, 12)
-
     return {
       width,
       height,
       visibleStars,
       hiddenStars,
       constellationSegments,
-      brightest,
       siderealTime: localSiderealTime(dateTime, longitude),
     }
   }, [allStars, latitude, longitude, dateTime])
 
   const visibleCount = skyData.visibleStars.length
   const hiddenCount = skyData.hiddenStars.length
-
   const currentTheme = THEMES[state.theme] || THEMES.midnight
+  const pinnedPoint = mapLatLonToPoint(latitude, longitude)
 
   async function handleCopyLink() {
     await navigator.clipboard.writeText(window.location.href)
@@ -218,6 +244,23 @@ function App() {
       latitude: String(preset.latitude),
       longitude: String(preset.longitude),
       timezone: String(preset.timezone),
+    }))
+  }
+
+  function handleDropPin(event) {
+    const svg = event.currentTarget
+    const rect = svg.getBoundingClientRect()
+    const x = ((event.clientX - rect.left) / rect.width) * 1000
+    const y = ((event.clientY - rect.top) / rect.height) * 500
+    const { latitude: nextLat, longitude: nextLon } = mapPointToLatLon(x, y)
+    const estimatedTimezone = estimatedTimezoneFromLongitude(nextLon)
+
+    setState((prev) => ({
+      ...prev,
+      locationName: 'Custom pin',
+      latitude: nextLat.toFixed(4),
+      longitude: nextLon.toFixed(4),
+      timezone: String(estimatedTimezone),
     }))
   }
 
@@ -296,6 +339,60 @@ function App() {
                 onChange={(event) => setField('timezone', event.target.value)}
               />
             </label>
+
+            <div className="pin-map-card">
+              <div className="map-heading">
+                <div>
+                  <strong>Drop a pin</strong>
+                  <p>Click anywhere on the world map to set latitude and longitude.</p>
+                </div>
+                <span>{latitude.toFixed(2)}°, {longitude.toFixed(2)}°</span>
+              </div>
+
+              <svg
+                className="pin-map"
+                viewBox="0 0 1000 500"
+                role="img"
+                aria-label="World map pin selector"
+                onClick={handleDropPin}
+              >
+                <defs>
+                  <linearGradient id="mapOcean" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="#163a63" />
+                    <stop offset="100%" stopColor="#0b1d33" />
+                  </linearGradient>
+                </defs>
+                <rect width="1000" height="500" rx="24" fill="url(#mapOcean)" />
+                {[0, 30, 60, -30, -60].map((lat) => {
+                  const y = 250 - (lat / 180) * 500
+                  return <line key={lat} x1="0" x2="1000" y1={y} y2={y} stroke="rgba(255,255,255,0.1)" strokeDasharray="8 10" />
+                })}
+                {[-180, -120, -60, 0, 60, 120, 180].map((lon) => {
+                  const x = ((lon + 180) / 360) * 1000
+                  return <line key={lon} y1="0" y2="500" x1={x} x2={x} stroke="rgba(255,255,255,0.1)" strokeDasharray="8 10" />
+                })}
+                <circle
+                  cx={pinnedPoint.x}
+                  cy={pinnedPoint.y}
+                  r="11"
+                  fill="#fefefe"
+                  opacity="0.95"
+                />
+                <circle
+                  cx={pinnedPoint.x}
+                  cy={pinnedPoint.y}
+                  r="24"
+                  fill="rgba(255,255,255,0.18)"
+                />
+                <path
+                  d={`M ${pinnedPoint.x} ${pinnedPoint.y + 10} C ${pinnedPoint.x - 8} ${pinnedPoint.y + 32}, ${pinnedPoint.x + 8} ${pinnedPoint.y + 32}, ${pinnedPoint.x} ${pinnedPoint.y + 54} C ${pinnedPoint.x - 8} ${pinnedPoint.y + 32}, ${pinnedPoint.x + 8} ${pinnedPoint.y + 32}, ${pinnedPoint.x} ${pinnedPoint.y + 10} Z`}
+                  fill="#ff6b6b"
+                />
+                <text x="24" y="34" fill="rgba(255,255,255,0.72)" fontSize="20">
+                  Click to drop a pin
+                </text>
+              </svg>
+            </div>
           </div>
 
           <div className="panel-section">
@@ -317,6 +414,22 @@ function App() {
                   onChange={(event) => setField('time', event.target.value)}
                 />
               </label>
+            </div>
+            <label className="slider-label">
+              Time slider
+              <input
+                type="range"
+                min="0"
+                max="1435"
+                step="5"
+                value={timeMinutes}
+                onChange={(event) => setField('time', minutesToTime(Number(event.target.value)))}
+              />
+            </label>
+            <div className="range-row">
+              <span>00:00</span>
+              <span>{state.time}</span>
+              <span>23:55</span>
             </div>
             <p className="hint">Shown as local time using {formatOffset(timezoneHours)}.</p>
           </div>
@@ -351,10 +464,38 @@ function App() {
               />
             </label>
             <div className="toggle-row">
-              <label><input type="checkbox" checked={state.showLabels} onChange={(event) => setField('showLabels', event.target.checked)} /> Labels</label>
-              <label><input type="checkbox" checked={state.showConstellations} onChange={(event) => setField('showConstellations', event.target.checked)} /> Constellations</label>
-              <label><input type="checkbox" checked={state.showGrid} onChange={(event) => setField('showGrid', event.target.checked)} /> Grid</label>
-              <label><input type="checkbox" checked={state.showNorth} onChange={(event) => setField('showNorth', event.target.checked)} /> North marker</label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={state.showLabels}
+                  onChange={(event) => setField('showLabels', event.target.checked)}
+                />{' '}
+                Labels
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={state.showConstellations}
+                  onChange={(event) => setField('showConstellations', event.target.checked)}
+                />{' '}
+                Constellations
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={state.showGrid}
+                  onChange={(event) => setField('showGrid', event.target.checked)}
+                />{' '}
+                Grid
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={state.showNorth}
+                  onChange={(event) => setField('showNorth', event.target.checked)}
+                />{' '}
+                North marker
+              </label>
             </div>
           </div>
 
@@ -388,7 +529,9 @@ function App() {
             </div>
             <div className="preview-meta">
               <span>{state.locationName}</span>
-              <span>{state.date} · {state.time}</span>
+              <span>
+                {state.date} · {state.time}
+              </span>
             </div>
           </div>
 
@@ -412,7 +555,14 @@ function App() {
 
               <rect width="1000" height="1000" fill="#040711" />
               <circle cx="500" cy="500" r="470" fill="url(#skyGlow)" />
-              <circle cx="500" cy="500" r="424" fill="none" stroke="rgba(255,255,255,0.28)" strokeWidth="3" />
+              <circle
+                cx="500"
+                cy="500"
+                r="424"
+                fill="none"
+                stroke="rgba(255,255,255,0.28)"
+                strokeWidth="3"
+              />
 
               {state.showGrid &&
                 [15, 30, 45, 60, 75].map((altitude) => {
@@ -435,7 +585,17 @@ function App() {
                   const angle = degToRad(azimuth)
                   const x = 500 + 424 * Math.sin(angle)
                   const y = 500 - 424 * Math.cos(angle)
-                  return <line key={azimuth} x1="500" y1="500" x2={x} y2={y} stroke="rgba(255,255,255,0.08)" strokeDasharray="8 12" />
+                  return (
+                    <line
+                      key={azimuth}
+                      x1="500"
+                      y1="500"
+                      x2={x}
+                      y2={y}
+                      stroke="rgba(255,255,255,0.08)"
+                      strokeDasharray="8 12"
+                    />
+                  )
                 })}
 
               {state.showConstellations &&
@@ -478,9 +638,22 @@ function App() {
 
               {state.showNorth && (
                 <g>
-                  <line x1="500" y1="500" x2="500" y2="76" stroke="rgba(255,255,255,0.38)" strokeWidth="2" />
+                  <line
+                    x1="500"
+                    y1="500"
+                    x2="500"
+                    y2="76"
+                    stroke="rgba(255,255,255,0.38)"
+                    strokeWidth="2"
+                  />
                   <circle cx="500" cy="78" r="8" fill="rgba(255,255,255,0.8)" />
-                  <text x="500" y="60" textAnchor="middle" fill="rgba(255,255,255,0.8)" fontSize="18">
+                  <text
+                    x="500"
+                    y="60"
+                    textAnchor="middle"
+                    fill="rgba(255,255,255,0.8)"
+                    fontSize="18"
+                  >
                     N
                   </text>
                 </g>
@@ -509,7 +682,9 @@ function App() {
             </div>
             <div>
               <span>Local time</span>
-              <strong>{state.date} {state.time}</strong>
+              <strong>
+                {state.date} {state.time}
+              </strong>
             </div>
             <div>
               <span>Mode</span>
