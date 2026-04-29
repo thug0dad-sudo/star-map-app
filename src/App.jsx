@@ -55,6 +55,18 @@ const THEMES = {
   },
 }
 
+const MAP_LANDMASS = [
+  'M120 126 C150 90, 214 86, 252 124 C272 145, 275 176, 248 190 C227 202, 205 194, 189 186 C169 176, 150 170, 136 168 C116 164, 102 143, 120 126 Z',
+  'M208 190 C238 178, 270 192, 286 218 C300 241, 292 272, 270 286 C246 301, 220 288, 208 270 C196 252, 191 216, 208 190 Z',
+  'M286 156 C322 138, 356 145, 371 170 C380 185, 375 205, 354 210 C334 215, 321 225, 314 243 C306 263, 282 270, 268 256 C252 241, 253 212, 262 192 C270 175, 272 164, 286 156 Z',
+  'M402 124 C435 96, 476 95, 506 116 C532 134, 535 164, 512 179 C493 192, 471 190, 455 182 C441 175, 427 177, 418 190 C407 207, 384 203, 376 187 C366 170, 377 139, 402 124 Z',
+  'M448 206 C486 187, 534 196, 552 226 C565 248, 554 274, 525 283 C497 292, 478 284, 461 271 C442 257, 424 238, 448 206 Z',
+  'M620 118 C656 96, 700 101, 718 127 C731 145, 724 166, 706 177 C688 188, 670 188, 653 182 C641 178, 627 180, 616 189 C603 199, 585 197, 579 183 C572 166, 591 133, 620 118 Z',
+  'M681 184 C720 176, 755 194, 765 223 C772 243, 760 260, 737 265 C721 268, 707 263, 695 256 C681 248, 664 243, 651 245 C636 247, 624 237, 626 223 C629 203, 651 188, 681 184 Z',
+  'M752 130 C774 119, 803 122, 812 140 C819 153, 813 167, 796 171 C778 175, 766 185, 760 198 C754 212, 738 216, 730 205 C720 191, 724 151, 752 130 Z',
+  'M792 306 C815 292, 846 296, 859 314 C867 326, 863 340, 848 345 C832 350, 821 360, 818 374 C814 389, 796 395, 786 383 C775 370, 774 318, 792 306 Z',
+]
+
 function parseQuery() {
   if (typeof window === 'undefined') return DEFAULT_STATE
   const params = new URLSearchParams(window.location.search)
@@ -361,16 +373,57 @@ function App() {
                     <stop offset="0%" stopColor="#163a63" />
                     <stop offset="100%" stopColor="#0b1d33" />
                   </linearGradient>
+                  <radialGradient id="mapGlow" cx="50%" cy="34%" r="72%">
+                    <stop offset="0%" stopColor="rgba(255,255,255,0.16)" />
+                    <stop offset="60%" stopColor="rgba(255,255,255,0.03)" />
+                    <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+                  </radialGradient>
                 </defs>
                 <rect width="1000" height="500" rx="24" fill="url(#mapOcean)" />
+                <ellipse cx="500" cy="250" rx="438" ry="196" fill="url(#mapGlow)" />
+                <circle cx="500" cy="250" r="208" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="3" />
+                <circle cx="500" cy="250" r="214" fill="none" stroke="rgba(255,255,255,0.08)" strokeDasharray="10 14" />
                 {[0, 30, 60, -30, -60].map((lat) => {
-                  const y = 250 - (lat / 180) * 500
-                  return <line key={lat} x1="0" x2="1000" y1={y} y2={y} stroke="rgba(255,255,255,0.1)" strokeDasharray="8 10" />
+                  const y = 250 - (lat / 180) * 360
+                  return (
+                    <line
+                      key={lat}
+                      x1="292"
+                      x2="708"
+                      y1={y}
+                      y2={y}
+                      stroke="rgba(255,255,255,0.13)"
+                      strokeDasharray="8 10"
+                    />
+                  )
                 })}
-                {[-180, -120, -60, 0, 60, 120, 180].map((lon) => {
-                  const x = ((lon + 180) / 360) * 1000
-                  return <line key={lon} y1="0" y2="500" x1={x} x2={x} stroke="rgba(255,255,255,0.1)" strokeDasharray="8 10" />
+                {[-120, -60, 0, 60, 120].map((lon) => {
+                  const x = 500 + (lon / 180) * 208
+                  return (
+                    <path
+                      key={lon}
+                      d={`M ${x} 42 C ${x - 22} 106, ${x - 22} 394, ${x} 458`}
+                      stroke="rgba(255,255,255,0.13)"
+                      strokeDasharray="8 10"
+                      fill="none"
+                    />
+                  )
                 })}
+                <g opacity="0.88">
+                  {MAP_LANDMASS.map((d, index) => (
+                    <path
+                      key={d}
+                      d={d}
+                      transform={index % 2 === 0 ? 'translate(0 4)' : 'translate(8 -2)'}
+                      fill={index % 3 === 0 ? '#4bb26f' : '#3f9d63'}
+                      stroke="rgba(17, 45, 31, 0.72)"
+                      strokeWidth="4"
+                      opacity="0.9"
+                    />
+                  ))}
+                </g>
+                <ellipse cx="430" cy="155" rx="160" ry="48" fill="rgba(255,255,255,0.08)" transform="rotate(-18 430 155)" />
+                <ellipse cx="640" cy="320" rx="190" ry="54" fill="rgba(255,255,255,0.06)" transform="rotate(16 640 320)" />
                 <circle
                   cx={pinnedPoint.x}
                   cy={pinnedPoint.y}
@@ -387,9 +440,12 @@ function App() {
                 <path
                   d={`M ${pinnedPoint.x} ${pinnedPoint.y + 10} C ${pinnedPoint.x - 8} ${pinnedPoint.y + 32}, ${pinnedPoint.x + 8} ${pinnedPoint.y + 32}, ${pinnedPoint.x} ${pinnedPoint.y + 54} C ${pinnedPoint.x - 8} ${pinnedPoint.y + 32}, ${pinnedPoint.x + 8} ${pinnedPoint.y + 32}, ${pinnedPoint.x} ${pinnedPoint.y + 10} Z`}
                   fill="#ff6b6b"
+                  stroke="rgba(255,255,255,0.86)"
+                  strokeWidth="3"
                 />
-                <text x="24" y="34" fill="rgba(255,255,255,0.72)" fontSize="20">
-                  Click to drop a pin
+                <circle cx={pinnedPoint.x} cy={pinnedPoint.y} r="5" fill="#ffffff" />
+                <text x="24" y="34" fill="rgba(255,255,255,0.82)" fontSize="20">
+                  Click the globe to drop a pin
                 </text>
               </svg>
             </div>
